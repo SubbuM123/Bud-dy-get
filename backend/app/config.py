@@ -8,7 +8,10 @@ or real environment variables in staging/production. `get_settings()` is
 cached so the environment is only parsed once per process.
 """
 
-from pydantic_settings import BaseSettings
+from typing import Annotated
+
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode
 from functools import lru_cache
 
 # Shared between Settings.secret_key's default and main.py's startup check - if this
@@ -32,8 +35,26 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    #
+    # pydantic-settings JSON-decodes list-typed env vars by default (e.g. requires
+    # CORS_ORIGINS='["https://a.com","https://b.com"]'), which isn't what anyone types
+    # into a Render dashboard field - it raises a SettingsError before the app even
+    # starts. NoDecode turns that automatic JSON parsing off for this field, and the
+    # validator below splits a plain comma-separated string ("https://a.com,https://b.com")
+    # into a list instead. A value that's already a list (e.g. from a .env file written
+    # as JSON) passes through unchanged.
+    cors_origins: Annotated[list[str], NoDecode] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
     cors_origin_regex: str | None = None
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def _split_cors_origins(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
 
     # Shared secret checked by api/cron.py against the X-Cron-Secret header, so the
     # GitHub Actions scheduled workflow can trigger the daily scheduler without a user
