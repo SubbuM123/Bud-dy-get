@@ -1,10 +1,10 @@
 """Manual trigger for the V2 background scheduler (services/scheduler.py).
 
-The scheduler's primary entry point is the daily Render Cron Job (app/cron/
-run_scheduler.py, invoked directly against the DB - no HTTP hop). This endpoint exists so
+The scheduler's primary entry point is the daily GitHub Actions workflow calling the
+secret-authenticated POST /cron/run-scheduler (api/cron.py). This endpoint exists so
 a user isn't stuck waiting for the next scheduled tick (up to 24 hours away) to see a
 newly-created recurring rule actually catch up. Calling it runs the exact same
-services/scheduler.run_scheduled_tasks the daily cron calls, synchronously, for every
+services/scheduler.run_scheduled_tasks the daily job calls, synchronously, for every
 user's data (not just the caller's) - the scheduler has always been a system-wide job, not
 a per-user one, so "run it now" naturally means "run the whole thing now," the same as the
 daily tick would.

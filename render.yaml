@@ -2,8 +2,13 @@
 # this repo. Docs: https://render.com/docs/blueprint-spec
 #
 # DATABASE_URL and CORS_ORIGINS are marked sync: false (not auto-generated) - fill them
-# in via the Render dashboard after the blueprint is created. SECRET_KEY is generated
-# automatically and shared by both services via fromService.
+# in via the Render dashboard after the blueprint is created. SECRET_KEY and CRON_SECRET
+# are generated automatically. CRON_SECRET also needs to be added as a GitHub Actions
+# secret (same value) - see .github/workflows/scheduler.yml.
+#
+# Only one service, on the free plan - no credit card required. The daily scheduler is
+# not a Render Cron Job (those have no free tier); it's triggered by a GitHub Actions
+# scheduled workflow calling POST /cron/run-scheduler instead.
 
 services:
   # FastAPI backend
@@ -12,12 +17,14 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile.prod
     dockerContext: ./backend
-    plan: starter
+    plan: free
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
+        generateValue: true
+      - key: CRON_SECRET
         generateValue: true
       - key: CORS_ORIGINS
         sync: false
@@ -25,18 +32,5 @@ services:
         value: https://.*\.vercel\.app
       - key: DEBUG
         value: "false"
-    preDeployCommand: alembic upgrade head
-
-  # Daily scheduler - runs directly against the DB, no broker/queue needed. Replaces the
-  # old Celery Beat + worker pair (see app/cron/run_scheduler.py).
-  - type: cron
-    name: personal-finance-scheduler
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile.prod
-    dockerContext: ./backend
-    plan: starter
-    schedule: "5 0 * * *"
-    dockerCommand: python -m app.cron.run_scheduler
-    envVars:
-      - key: DATABASE_URL
-        sync: false
+    # Migrations run inside the container's CMD (Dockerfile.prod), not here -
+    # preDeployCommand isn't available on the free plan.

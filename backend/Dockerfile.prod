@@ -37,4 +37,7 @@ ENV PORT=8000
 
 EXPOSE ${PORT}
 
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+# Migrations run here instead of Render's Pre-Deploy Command, which isn't available on
+# the free web service plan. alembic upgrade head is idempotent, so re-running it on
+# every boot (including free-tier cold starts after the service sleeps) is harmless.
+CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT}

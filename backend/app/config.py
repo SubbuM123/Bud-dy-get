@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
     cors_origin_regex: str | None = None
 
+    # Shared secret checked by api/cron.py against the X-Cron-Secret header, so the
+    # GitHub Actions scheduled workflow can trigger the daily scheduler without a user
+    # JWT. Empty by default so the endpoint is closed until a real secret is set.
+    cron_secret: str = ""
+
     class Config:
         env_file = ".env"
 

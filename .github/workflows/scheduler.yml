@@ -1,0 +1,33 @@
+name: Daily scheduler
+
+# Render's own Cron Job resource has no free tier ($1/month minimum, requires a
+# card), so the daily scheduler runs here instead - free on GitHub Actions - and
+# calls the backend's secret-authenticated /cron/run-scheduler endpoint.
+#
+# Requires two repo secrets (Settings > Secrets and variables > Actions):
+#   RENDER_API_URL - e.g. https://personal-finance-api.onrender.com
+#   CRON_SECRET    - must match the CRON_SECRET Render generated for the backend service
+
+on:
+  schedule:
+    # 00:05 UTC daily
+    - cron: "5 0 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  run-scheduler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call scheduler endpoint
+        run: |
+          # Free Render services sleep after inactivity and take ~30-60s to wake up,
+          # so retry instead of failing on the first connection attempt.
+          response=$(curl --silent --show-error --fail --retry 5 --retry-delay 15 \
+            --max-time 90 \
+            -w "\n%{http_code}" \
+            -X POST "${RENDER_API_URL}/cron/run-scheduler" \
+            -H "X-Cron-Secret: ${CRON_SECRET}")
+          echo "$response"
+        env:
+          RENDER_API_URL: ${{ secrets.RENDER_API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

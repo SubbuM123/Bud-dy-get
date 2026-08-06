@@ -1,7 +1,8 @@
-"""Pydantic response schema for the manual scheduler-trigger endpoint.
+"""Pydantic response schema for the scheduler-trigger endpoints.
 
-Mirrors services/scheduler.run_scheduled_tasks's return shape - see api/v1/scheduler.py's
-docstring for why this endpoint exists alongside the daily Celery Beat task.
+Mirrors services/scheduler.run_scheduled_tasks's return shape. Shared by both the
+JWT-authenticated manual trigger (api/v1/scheduler.py) and the secret-authenticated
+daily cron trigger (api/cron.py).
 """
 
 from pydantic import BaseModel
