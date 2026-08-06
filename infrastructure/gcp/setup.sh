@@ -124,6 +124,14 @@ gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SA_EMAIL" \
   --role="roles/iam.workloadIdentityUser" \
   --member="principalSet://iam.googleapis.com/${WIF_POOL_ID}/attribute.repository/${GITHUB_REPO}"
 
+# workloadIdentityUser alone gets the auth action's initial token exchange working, but
+# gcloud's docker credential helper (invoked lazily by `docker push`, not upfront by the
+# auth action) separately calls generateAccessToken and needs serviceAccountTokenCreator
+# too, or it fails with "iam.serviceAccounts.getAccessToken denied" at push time.
+gcloud iam service-accounts add-iam-policy-binding "$DEPLOY_SA_EMAIL" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="principalSet://iam.googleapis.com/${WIF_POOL_ID}/attribute.repository/${GITHUB_REPO}"
+
 echo ""
 echo "Add these as GitHub Actions repo variables/secrets (Settings > Secrets and variables > Actions):"
 echo "  GCP_PROJECT_ID              = ${PROJECT_ID}"
