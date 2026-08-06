@@ -30,12 +30,18 @@ CORS_ORIGIN_REGEX_VALUE='https://.*\.web\.app'
 gcloud config set project "$PROJECT_ID"
 
 echo "== Enabling required APIs =="
+# iam.googleapis.com + sts.googleapis.com are the two easy ones to forget - the pool and
+# provider create fine without them, but the actual STS token exchange
+# (google-github-actions/auth's "generate Google Cloud federated token" step, which is
+# what every CI run does) fails with an "invalid_target" error at runtime without them.
 gcloud services enable \
   run.googleapis.com \
   artifactregistry.googleapis.com \
   secretmanager.googleapis.com \
   cloudbuild.googleapis.com \
-  iamcredentials.googleapis.com
+  iamcredentials.googleapis.com \
+  iam.googleapis.com \
+  sts.googleapis.com
 
 echo "== Artifact Registry repo for backend images =="
 gcloud artifacts repositories create "$REPO_NAME" \
@@ -58,8 +64,14 @@ echo -n "$CORS_ORIGIN_REGEX_VALUE" | gcloud secrets versions add cors-origin-reg
 gcloud secrets versions list secret-key --limit=1 --format='value(name)' | grep -q . \
   || python3 -c "import secrets; print(secrets.token_urlsafe(48))" \
      | tr -d '\n' | gcloud secrets versions add secret-key --data-file=-
-# cors-origins: set explicitly once you know the Firebase Hosting URL / custom domain, e.g.:
+# cors-origins: bootstrap to an empty value (blocks all cross-origin requests, but still
+# gives the secret a version to reference) so the first `gcloud run deploy`'s
+# --set-secrets=...cors-origins:latest... has something to resolve - only on first setup,
+# so a real value set later (once the Firebase Hosting URL is known) isn't clobbered by a
+# re-run:
 #   echo -n "https://your-project.web.app" | gcloud secrets versions add cors-origins --data-file=-
+gcloud secrets versions list cors-origins --limit=1 --format='value(name)' | grep -q . \
+  || echo -n "" | gcloud secrets versions add cors-origins --data-file=-
 
 echo "== Runtime service account (the Cloud Run service itself runs as this) =="
 gcloud iam service-accounts create "$RUNTIME_SA_NAME" \
