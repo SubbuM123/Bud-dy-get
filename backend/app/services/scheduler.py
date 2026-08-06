@@ -1,8 +1,10 @@
 """Core logic for the V2 background scheduler (docs/future-plan.md's "Automatic Balance
-Updates" section) - the daily Celery Beat task (app/workers/recurring_actions.py) that
-auto-executes every recurring rule in the app on its own cadence, closing the gap where
-V1 required a manual action (POST /income/{id}/log, a `/contribute` call, or hand-entering
-each recurring bill) to ever move real money or post a real Transaction.
+Updates" section) - auto-executes every recurring rule in the app on its own cadence,
+closing the gap where V1 required a manual action (POST /income/{id}/log, a `/contribute`
+call, or hand-entering each recurring bill) to ever move real money or post a real
+Transaction. There is no server-side timer driving this - see api/v1/scheduler.py's
+docstring for why a login-triggered call is a better fit than a fixed schedule for an app
+used this infrequently.
 
 Every "get_due_*" function below returns the rows across *all* users that are due as of a
 given date - this runs as one system-wide daily task, not a per-request/per-user call, so
@@ -630,10 +632,10 @@ async def post_due_recurring_expense(db: AsyncSession, expense: Expense, as_of: 
 async def run_scheduled_tasks(db: AsyncSession, as_of: date | None = None) -> dict[str, int]:
     """Run every due recurring rule across all users as of `as_of` (defaults to today),
     catching each fully up to `as_of` (not just one occurrence - see this module's
-    docstring), committing once at the end. Called by the daily Celery task
-    (app/workers/recurring_actions.py). Returns a count of how many *occurrences* of each
-    kind were auto-posted (a single Income catching up 12 months contributes 12 to
-    `incomes_posted`, not 1), for the task's return value/logs.
+    docstring), committing once at the end. Called by api/v1/scheduler.py's
+    POST /run, which the frontend triggers once per login. Returns a count of how many
+    *occurrences* of each kind were auto-posted (a single Income catching up 12 months
+    contributes 12 to `incomes_posted`, not 1), for the caller to summarize.
     """
     as_of = as_of or date.today()
     counts = {

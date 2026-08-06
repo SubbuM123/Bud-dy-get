@@ -1,13 +1,13 @@
-"""Manual trigger for the V2 background scheduler (services/scheduler.py).
+"""Trigger for the V2 background scheduler (services/scheduler.py).
 
-The scheduler's primary entry point is the daily GitHub Actions workflow calling the
-secret-authenticated POST /cron/run-scheduler (api/cron.py). This endpoint exists so
-a user isn't stuck waiting for the next scheduled tick (up to 24 hours away) to see a
-newly-created recurring rule actually catch up. Calling it runs the exact same
-services/scheduler.run_scheduled_tasks the daily job calls, synchronously, for every
-user's data (not just the caller's) - the scheduler has always been a system-wide job, not
-a per-user one, so "run it now" naturally means "run the whole thing now," the same as the
-daily tick would.
+This is the *only* trigger for the scheduler - there is no server-side cron/timer. This
+app is used infrequently enough (personal use, opened every few months rather than daily)
+that a fixed daily tick would mostly run against nothing due; instead, the frontend calls
+this once per login (see frontend/src/features/scheduler), right after auth resolves, so
+catch-up happens the moment someone opens the app rather than waiting on a schedule or a
+manual button. Calling it runs services/scheduler.run_scheduled_tasks synchronously, for
+every user's data (not just the caller's) - the scheduler has always been a system-wide
+job, not a per-user one, so "run it now" naturally means "run the whole thing now."
 
 Rate-limited (not just authenticated) because "system-wide job, triggerable by any single
 authenticated user" is otherwise a cheap DoS lever - repeated calls are safe from a

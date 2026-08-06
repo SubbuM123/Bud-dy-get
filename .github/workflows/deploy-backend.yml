@@ -1,0 +1,83 @@
+name: Deploy backend to Cloud Run
+
+# Builds backend/Dockerfile.prod, pushes it to Artifact Registry, runs the
+# alembic migration against Supabase as a one-off step (see the comment in
+# Dockerfile.prod on why this isn't baked into the container's CMD), then
+# deploys the image to Cloud Run.
+#
+# Requires infrastructure/gcp/setup.sh to have been run once, and these repo
+# variables/secrets configured (Settings > Secrets and variables > Actions):
+#   vars.GCP_PROJECT_ID, vars.GCP_REGION, vars.GCP_WORKLOAD_IDENTITY_PROVIDER,
+#   vars.GCP_DEPLOY_SA_EMAIL, vars.GCP_RUNTIME_SA_EMAIL
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch: {}
+
+env:
+  SERVICE_NAME: personal-finance-api
+  REPO_NAME: personal-finance
+  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/personal-finance/backend
+
+permissions:
+  contents: read
+  id-token: write # required for Workload Identity Federation
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r backend/requirements.txt
+      - run: pytest
+        working-directory: backend
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA_EMAIL }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - name: Build image
+        run: docker build -f backend/Dockerfile.prod -t "${IMAGE}:${{ github.sha }}" backend
+
+      - name: Push image
+        run: docker push "${IMAGE}:${{ github.sha }}"
+
+      - name: Run database migration
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="$(gcloud secrets versions access latest --secret=database-url)" \
+            --entrypoint alembic \
+            "${IMAGE}:${{ github.sha }}" upgrade head
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE_NAME" \
+            --image="${IMAGE}:${{ github.sha }}" \
+            --region="${{ vars.GCP_REGION }}" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --min-instances=0 \
+            --max-instances=1 \
+            --service-account="${{ vars.GCP_RUNTIME_SA_EMAIL }}" \
+            --set-env-vars="DEBUG=false" \
+            --set-secrets="DATABASE_URL=database-url:latest,SECRET_KEY=secret-key:latest,CORS_ORIGINS=cors-origins:latest,CORS_ORIGIN_REGEX=cors-origin-regex:latest"

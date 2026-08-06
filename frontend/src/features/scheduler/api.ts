@@ -1,8 +1,9 @@
 /**
- * Thin wrapper around POST /scheduler/run - manually triggers the V2 background
- * scheduler instead of waiting for its daily Celery Beat tick (see
- * backend/app/api/v1/scheduler.py's docstring for why this endpoint exists). No React
- * dependency; hooks/useScheduler.ts wraps it in a React Query mutation.
+ * Thin wrapper around POST /scheduler/run - triggers the V2 background scheduler's
+ * catch-up (see backend/app/api/v1/scheduler.py's docstring). Called automatically once
+ * per session by MainLayout, and also available via the manual "Sync Recurring Items"
+ * button (features/transactions) as a fallback. No React dependency; hooks/useScheduler.ts
+ * wraps it in a React Query mutation.
  */
 import apiClient from '@/lib/api-client'
 import type { SchedulerRunResult } from '@/types'

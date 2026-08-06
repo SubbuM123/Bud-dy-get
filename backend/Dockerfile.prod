@@ -1,4 +1,4 @@
-# Multi-stage production Dockerfile for FastAPI backend on Render.
+# Multi-stage production Dockerfile for FastAPI backend, deployed to Cloud Run.
 # Stage 1: Build asyncpg (requires C compiler)
 # Stage 2: Runtime with OCR dependencies (tesseract, poppler)
 
@@ -32,12 +32,13 @@ RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 
 COPY . .
 
-# Render injects PORT; default to 8000 for local testing
+# Cloud Run injects PORT; default to 8000 for local testing
 ENV PORT=8000
 
 EXPOSE ${PORT}
 
-# Migrations run here instead of Render's Pre-Deploy Command, which isn't available on
-# the free web service plan. alembic upgrade head is idempotent, so re-running it on
-# every boot (including free-tier cold starts after the service sleeps) is harmless.
-CMD alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+# Migrations are run as a separate step before deploy (see
+# .github/workflows/deploy-backend.yml), not on container boot - Cloud Run can start
+# multiple instances of the same revision concurrently, and concurrent
+# `alembic upgrade head` runs would race.
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}

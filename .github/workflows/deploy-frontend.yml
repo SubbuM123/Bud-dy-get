@@ -1,0 +1,45 @@
+name: Deploy frontend to Firebase Hosting
+
+# Builds the Vite SPA with VITE_API_URL pointed at the Cloud Run backend and
+# deploys dist/ to Firebase Hosting.
+#
+# Requires vars.GCP_PROJECT_ID and vars.BACKEND_URL (the deployed Cloud Run
+# service URL, or a custom domain once mapped), plus secrets.FIREBASE_SERVICE_ACCOUNT
+# (a Firebase-scoped service account key JSON with Hosting deploy permission -
+# see https://firebase.google.com/docs/hosting/github-integration).
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+        working-directory: frontend
+
+      - run: npm run build
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ vars.BACKEND_URL }}/api/v1
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ vars.GCP_PROJECT_ID }}
+          channelId: live
+          entryPoint: frontend

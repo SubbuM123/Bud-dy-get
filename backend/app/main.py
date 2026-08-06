@@ -4,10 +4,12 @@ This module builds and configures the single FastAPI `app` instance that
 Uvicorn serves (see backend/Dockerfile.prod's CMD). It wires up CORS so the
 frontend can call the API, mounts every versioned route under /api/v1 via
 the aggregated router in api/v1/router.py, and exposes a simple health-check
-endpoint used by Render's health check and load balancers to verify the
-service is up. The daily scheduler is triggered over HTTP by a GitHub Actions
-scheduled workflow calling the secret-authenticated /cron/run-scheduler route
-(api/cron.py) - Render's Cron Job resource has no free tier, so it isn't used.
+endpoint used by Cloud Run's health check to verify the service is up. The
+background scheduler (services/scheduler.py) has no server-side trigger of
+its own - it's caught up by the frontend calling the JWT-authenticated
+POST /api/v1/scheduler/run once per login (see api/v1/scheduler.py), since
+this app is used infrequently enough that a fixed daily tick would mostly
+run against nothing due.
 """
 
 import logging
@@ -22,7 +24,6 @@ from sqlalchemy.exc import DBAPIError
 
 from app.config import get_settings, INSECURE_DEFAULT_SECRET_KEY
 from app.api.v1.router import api_router
-from app.api.cron import router as cron_router
 from app.core.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
@@ -80,10 +81,9 @@ async def db_error_handler(request: Request, exc: DBAPIError) -> JSONResponse:
 
 
 app.include_router(api_router, prefix="/api/v1")
-app.include_router(cron_router, prefix="/cron", tags=["cron"])
 
 
-# Liveness probe used by Render's health check; not part of the versioned API.
+# Liveness probe used by Cloud Run's health check; not part of the versioned API.
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}

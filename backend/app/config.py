@@ -56,11 +56,6 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
 
-    # Shared secret checked by api/cron.py against the X-Cron-Secret header, so the
-    # GitHub Actions scheduled workflow can trigger the daily scheduler without a user
-    # JWT. Empty by default so the endpoint is closed until a real secret is set.
-    cron_secret: str = ""
-
     class Config:
         env_file = ".env"
 
