@@ -1,0 +1,42 @@
+# Render Blueprint - deploy with "New > Blueprint" in the Render dashboard, pointed at
+# this repo. Docs: https://render.com/docs/blueprint-spec
+#
+# DATABASE_URL and CORS_ORIGINS are marked sync: false (not auto-generated) - fill them
+# in via the Render dashboard after the blueprint is created. SECRET_KEY is generated
+# automatically and shared by both services via fromService.
+
+services:
+  # FastAPI backend
+  - type: web
+    name: personal-finance-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.prod
+    dockerContext: ./backend
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: CORS_ORIGIN_REGEX
+        value: https://.*\.vercel\.app
+      - key: DEBUG
+        value: "false"
+    preDeployCommand: alembic upgrade head
+
+  # Daily scheduler - runs directly against the DB, no broker/queue needed. Replaces the
+  # old Celery Beat + worker pair (see app/cron/run_scheduler.py).
+  - type: cron
+    name: personal-finance-scheduler
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.prod
+    dockerContext: ./backend
+    plan: starter
+    schedule: "5 0 * * *"
+    dockerCommand: python -m app.cron.run_scheduler
+    envVars:
+      - key: DATABASE_URL
+        sync: false

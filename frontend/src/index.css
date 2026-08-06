@@ -1,0 +1,36 @@
+/*
+ * Global stylesheet loaded once by main.tsx. Pulls in Tailwind's base/components/utilities
+ * layers, defines the CSS custom properties used for the (currently unused but scaffolded)
+ * light/dark theme variables, and sets the default body font and border color so individual
+ * components don't need to repeat them.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 255 255 255;
+  --foreground: 15 23 42;
+  --muted: 241 245 249;
+  --muted-foreground: 100 116 139;
+  --border: 226 232 240;
+  --ring: 59 130 246;
+}
+
+.dark {
+  --background: 15 23 42;
+  --foreground: 248 250 252;
+  --muted: 30 41 59;
+  --muted-foreground: 148 163 184;
+  --border: 51 65 85;
+  --ring: 59 130 246;
+}
+
+body {
+  @apply bg-white text-slate-900 antialiased;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+* {
+  @apply border-slate-200;
+}

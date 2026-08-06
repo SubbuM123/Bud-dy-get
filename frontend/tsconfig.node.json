@@ -1,0 +1,14 @@
+// Separate TypeScript configuration scoped to vite.config.ts itself, which runs under
+// Node rather than the browser. Split out via project references (see tsconfig.json's
+// `references`) so editor tooling applies Node-appropriate module resolution to the Vite
+// config file without affecting how src/ is type-checked.
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}
