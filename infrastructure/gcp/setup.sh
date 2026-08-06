@@ -64,14 +64,14 @@ echo -n "$CORS_ORIGIN_REGEX_VALUE" | gcloud secrets versions add cors-origin-reg
 gcloud secrets versions list secret-key --limit=1 --format='value(name)' | grep -q . \
   || python3 -c "import secrets; print(secrets.token_urlsafe(48))" \
      | tr -d '\n' | gcloud secrets versions add secret-key --data-file=-
-# cors-origins: bootstrap to an empty value (blocks all cross-origin requests, but still
-# gives the secret a version to reference) so the first `gcloud run deploy`'s
-# --set-secrets=...cors-origins:latest... has something to resolve - only on first setup,
-# so a real value set later (once the Firebase Hosting URL is known) isn't clobbered by a
-# re-run:
+# cors-origins: bootstrap to a placeholder that matches no real Origin header (Secret
+# Manager rejects a genuinely empty payload outright), just so the first `gcloud run
+# deploy`'s --set-secrets=...cors-origins:latest... has a version to resolve - only on
+# first setup, so a real value set later (once the Firebase Hosting URL is known) isn't
+# clobbered by a re-run:
 #   echo -n "https://your-project.web.app" | gcloud secrets versions add cors-origins --data-file=-
 gcloud secrets versions list cors-origins --limit=1 --format='value(name)' | grep -q . \
-  || echo -n "" | gcloud secrets versions add cors-origins --data-file=-
+  || echo -n "unset" | gcloud secrets versions add cors-origins --data-file=-
 
 echo "== Runtime service account (the Cloud Run service itself runs as this) =="
 gcloud iam service-accounts create "$RUNTIME_SA_NAME" \
@@ -114,6 +114,7 @@ gcloud iam workload-identity-pools providers create-oidc "github-provider" \
   --workload-identity-pool="github-pool" \
   --display-name="GitHub OIDC" \
   --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository=='${GITHUB_REPO}'" \
   --issuer-uri="https://token.actions.githubusercontent.com" \
   || echo "Provider already exists, skipping."
 
