@@ -21,7 +21,17 @@ _engine_kwargs = {
 }
 
 if settings.database_url.startswith("postgresql"):
-    _engine_kwargs["connect_args"] = {"ssl": "require", "statement_cache_size": 0}
+    # statement_cache_size=0 alone stops asyncpg from *caching* prepared statements, but
+    # it still auto-names each one (__asyncpg_stmt_N__) - since PgBouncer's transaction
+    # pooling can hand two different pooled connections the same backend session, that
+    # name can collide server-side (DuplicatePreparedStatementError). Forcing every
+    # prepared statement to use PostgreSQL's anonymous/unnamed slot instead of a named one
+    # sidesteps the collision entirely.
+    _engine_kwargs["connect_args"] = {
+        "ssl": "require",
+        "statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: "",
+    }
     _engine_kwargs["pool_size"] = 5
     _engine_kwargs["max_overflow"] = 5
 
