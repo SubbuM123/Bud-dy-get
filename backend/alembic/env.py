@@ -15,6 +15,18 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+# Same PgBouncer-safety connect_args as app/database.py's engine - this module builds its
+# own separate engine (async_engine_from_config below), so it doesn't inherit those
+# automatically. Without them, the very first connection this engine opens fails with
+# asyncpg.exceptions.DuplicatePreparedStatementError before a single migration statement
+# even runs, since SQLAlchemy's own asyncpg dialect issues a prepared "setup" query
+# (JSON codec registration) on every new connection.
+_PG_CONNECT_ARGS = {
+    "ssl": "require",
+    "statement_cache_size": 0,
+    "prepared_statement_name_func": lambda: "",
+}
+
 from alembic import context
 
 from app.config import get_settings
@@ -60,6 +72,7 @@ async def run_async_migrations() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=_PG_CONNECT_ARGS if settings.database_url.startswith("postgresql") else {},
     )
 
     async with connectable.connect() as connection:
