@@ -1,7 +1,7 @@
 /**
- * Fixed left navigation rail listing every top-level module of the app (Dashboard, Bank
- * Accounts, Expenses, Receipts, Retirement, Education, Investments, Stock Portfolio,
- * Planning). Rendered once by MainLayout and shared across every authenticated page;
+ * Fixed left navigation rail listing every top-level module of the app (Dashboard, Net
+ * Worth, Bank Accounts, Expenses, Receipts, Retirement, Education, Investments, Stock
+ * Portfolio). Rendered once by MainLayout and shared across every authenticated page;
  * routes that don't have a real page yet still appear here so the full planned app
  * structure is visible from V1. "Investments" (Phase 5) covers bonds and property
  * investments; "Stock Portfolio" covers individual stock positions - split across two
@@ -11,6 +11,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
+  PieChart,
   Landmark,
   Wallet,
   ArrowLeftRight,
@@ -20,7 +21,6 @@ import {
   GraduationCap,
   TrendingUp,
   LineChart,
-  Calculator,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 // the rest of the app's money flow (Income -> Bank Accounts -> destinations).
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Net Worth', href: '/net-worth', icon: PieChart },
   { name: 'Income', href: '/income', icon: Wallet },
   { name: 'Bank Accounts', href: '/bank-accounts', icon: Landmark },
   { name: 'Transactions', href: '/transactions', icon: ArrowLeftRight },
@@ -39,7 +40,6 @@ const navigation = [
   { name: 'Education', href: '/education', icon: GraduationCap },
   { name: 'Investments', href: '/investments', icon: TrendingUp },
   { name: 'Stock Portfolio', href: '/stocks', icon: LineChart },
-  { name: 'Planning', href: '/planning', icon: Calculator },
 ]
 
 export default function Sidebar() {
