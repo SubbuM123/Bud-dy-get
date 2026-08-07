@@ -1,5 +1,7 @@
 # Bud(dy)get
 
+**Currently hosted at: https://buddyget-504716.web.app/**
+
 A personal finance dashboard: bank accounts, income, expenses, retirement and education
 savings, and investments, all in one place — with a net worth view that projects itself
 forward and a background scheduler that catches up on missed recurring activity the moment
