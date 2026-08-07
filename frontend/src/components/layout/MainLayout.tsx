@@ -41,6 +41,9 @@ export default function MainLayout() {
         <main className="p-6">
           <Outlet />
         </main>
+        <footer className="py-6 text-center text-sm text-slate-500">
+          Bud(dy)get &middot; &copy; 2026 Bud(dy)get. All rights reserved.
+        </footer>
       </div>
     </div>
   )
