@@ -92,3 +92,5 @@ cd frontend && npm run test
 
 Both are scale-to-zero (Cloud Run) or static (Firebase Hosting), so there's no cost or
 manual step to "turn the app off" between uses.
+
+This site was built with ClaudeCode (Opus 4.5, Sonnet 5)
