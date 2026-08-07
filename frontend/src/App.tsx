@@ -1,17 +1,21 @@
 /**
- * Top-level route table for the app. Splits routes into public (/login, /register) and
- * protected (everything under MainLayout, guarded by ProtectedRoute) groups. Feature
- * routes that don't have a real page yet (planning) render an inline placeholder so the
- * full navigation structure is in place from V1, ready to be swapped for real pages as
- * each module is built. /investments (Phase 5) covers bonds and property investments;
- * /stocks covers individual stock positions (StockPortfolioPage) - split across two
- * pages rather than one crowded page, see docs/progress.md's 2026-08-04 "Phase 5 UI
- * split" entry. /stocks is named for a future merge with options trading once that's
- * built (see components/layout/Sidebar.tsx).
+ * Top-level route table for the app. Splits routes into public (/, /login, /register) and
+ * protected (everything under MainLayout, guarded by ProtectedRoute) groups. The protected
+ * group is a pathless layout route - its children use absolute paths ("/dashboard" rather
+ * than "dashboard") so "/" itself is free for RootRoute to own, rather than being claimed
+ * by an index route the way it was before LandingPage existed. Feature routes that don't
+ * have a real page yet (planning) render an inline placeholder so the full navigation
+ * structure is in place from V1, ready to be swapped for real pages as each module is
+ * built. /investments (Phase 5) covers bonds and property investments; /stocks covers
+ * individual stock positions (StockPortfolioPage) - split across two pages rather than one
+ * crowded page, see docs/progress.md's 2026-08-04 "Phase 5 UI split" entry. /stocks is
+ * named for a future merge with options trading once that's built (see
+ * components/layout/Sidebar.tsx).
  */
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/authStore'
 import MainLayout from './components/layout/MainLayout'
+import LandingPage from './features/landing/pages/LandingPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
 import DashboardPage from './features/dashboard/pages/DashboardPage'
@@ -41,37 +45,43 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// "/" itself: LandingPage for a signed-out visitor, straight to the dashboard for an
+// already-authenticated one (so returning users skip the marketing page).
+function RootRoute() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />
+}
+
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<RootRoute />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
       <Route
-        path="/"
         element={
           <ProtectedRoute>
             <MainLayout />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="income" element={<IncomePage />} />
-        <Route path="transactions" element={<TransactionsPage />} />
-        <Route path="bank-accounts" element={<BankAccountsPage />} />
-        <Route path="bank-accounts/:accountId" element={<AccountDetailPage />} />
-        <Route path="expenses" element={<ExpensesPage />} />
-        <Route path="expense-categories" element={<CategoriesPage />} />
-        <Route path="receipts" element={<ReceiptsPage />} />
-        <Route path="receipts/:receiptId" element={<ReceiptDetailPage />} />
-        <Route path="retirement" element={<RetirementAccountsPage />} />
-        <Route path="retirement/:accountId" element={<RetirementAccountDetailPage />} />
-        <Route path="education" element={<EducationAccountsPage />} />
-        <Route path="education/:accountId" element={<EducationAccountDetailPage />} />
-        <Route path="investments" element={<InvestmentsPage />} />
-        <Route path="stocks" element={<StockPortfolioPage />} />
-        <Route path="planning" element={<div className="p-6">Financial Planning - Coming Soon</div>} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/income" element={<IncomePage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
+        <Route path="/bank-accounts" element={<BankAccountsPage />} />
+        <Route path="/bank-accounts/:accountId" element={<AccountDetailPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/expense-categories" element={<CategoriesPage />} />
+        <Route path="/receipts" element={<ReceiptsPage />} />
+        <Route path="/receipts/:receiptId" element={<ReceiptDetailPage />} />
+        <Route path="/retirement" element={<RetirementAccountsPage />} />
+        <Route path="/retirement/:accountId" element={<RetirementAccountDetailPage />} />
+        <Route path="/education" element={<EducationAccountsPage />} />
+        <Route path="/education/:accountId" element={<EducationAccountDetailPage />} />
+        <Route path="/investments" element={<InvestmentsPage />} />
+        <Route path="/stocks" element={<StockPortfolioPage />} />
+        <Route path="/planning" element={<div className="p-6">Financial Planning - Coming Soon</div>} />
       </Route>
     </Routes>
   )
