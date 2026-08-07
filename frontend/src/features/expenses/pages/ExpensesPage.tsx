@@ -11,6 +11,7 @@ import { Plus, Settings, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
+import { Modal } from '@/components/ui/modal'
 import { formatCurrency, getApiErrorMessage } from '@/lib/utils'
 import ExpenseCard from '../components/ExpenseCard'
 import ExpenseForm from '../components/ExpenseForm'
@@ -156,63 +157,48 @@ export default function ExpensesPage() {
         </Card>
       </div>
 
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Add Expense</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {createExpense.isError && (
-              <div className="mb-4 rounded-md bg-danger-500/10 p-3 text-sm text-danger-500">
-                {getApiErrorMessage(createExpense.error, 'Failed to create expense')}
-              </div>
-            )}
-            <ExpenseForm
-              onSubmit={handleCreate}
-              isLoading={createExpense.isPending}
-              onCancel={() => setShowForm(false)}
-              onRequestCreateCategory={() => setShowCategoryForm(true)}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Modal open={showForm} onClose={() => setShowForm(false)} title="Add Expense">
+        {createExpense.isError && (
+          <div className="mb-4 rounded-md bg-danger-500/10 p-3 text-sm text-danger-500">
+            {getApiErrorMessage(createExpense.error, 'Failed to create expense')}
+          </div>
+        )}
+        <ExpenseForm
+          onSubmit={handleCreate}
+          isLoading={createExpense.isPending}
+          onCancel={() => setShowForm(false)}
+          onRequestCreateCategory={() => setShowCategoryForm(true)}
+        />
+      </Modal>
 
-      {editingExpense && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Expense</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {updateExpense.isError && (
-              <div className="mb-4 rounded-md bg-danger-500/10 p-3 text-sm text-danger-500">
-                {getApiErrorMessage(updateExpense.error, 'Failed to update expense')}
-              </div>
-            )}
-            <ExpenseForm
-              expense={editingExpense}
-              onSubmit={handleUpdate}
-              isLoading={updateExpense.isPending}
-              onCancel={() => setEditingExpense(null)}
-              onRequestCreateCategory={() => setShowCategoryForm(true)}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Modal open={!!editingExpense} onClose={() => setEditingExpense(null)} title="Edit Expense">
+        {updateExpense.isError && (
+          <div className="mb-4 rounded-md bg-danger-500/10 p-3 text-sm text-danger-500">
+            {getApiErrorMessage(updateExpense.error, 'Failed to update expense')}
+          </div>
+        )}
+        {editingExpense && (
+          <ExpenseForm
+            expense={editingExpense}
+            onSubmit={handleUpdate}
+            isLoading={updateExpense.isPending}
+            onCancel={() => setEditingExpense(null)}
+            onRequestCreateCategory={() => setShowCategoryForm(true)}
+          />
+        )}
+      </Modal>
 
-      {showCategoryForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>New Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CategoryForm
-              onSubmit={handleCreateCategory}
-              isLoading={createCategory.isPending}
-              onCancel={() => setShowCategoryForm(false)}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Modal
+        open={showCategoryForm}
+        onClose={() => setShowCategoryForm(false)}
+        title="New Category"
+      >
+        <CategoryForm
+          onSubmit={handleCreateCategory}
+          isLoading={createCategory.isPending}
+          onCancel={() => setShowCategoryForm(false)}
+        />
+      </Modal>
 
       <Card>
         <CardHeader>

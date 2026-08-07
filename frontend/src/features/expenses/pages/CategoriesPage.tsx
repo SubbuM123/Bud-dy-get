@@ -6,7 +6,8 @@
 import { useState } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import { Modal } from '@/components/ui/modal'
 import { formatCurrency, getApiErrorMessage } from '@/lib/utils'
 import CategoryForm from '../components/CategoryForm'
 import { getCategoryIcon } from '../icon-map'
@@ -82,46 +83,38 @@ export default function CategoriesPage() {
         </Button>
       </div>
 
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>New Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {createCategory.isError && (
-              <div className="mb-4 rounded-md bg-danger-500/10 p-3 text-sm text-danger-500">
-                {getApiErrorMessage(createCategory.error, 'Failed to create category')}
-              </div>
-            )}
-            <CategoryForm
-              onSubmit={handleCreate}
-              isLoading={createCategory.isPending}
-              onCancel={() => setShowForm(false)}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Modal open={showForm} onClose={() => setShowForm(false)} title="New Category">
+        {createCategory.isError && (
+          <div className="mb-4 rounded-md bg-danger-500/10 p-3 text-sm text-danger-500">
+            {getApiErrorMessage(createCategory.error, 'Failed to create category')}
+          </div>
+        )}
+        <CategoryForm
+          onSubmit={handleCreate}
+          isLoading={createCategory.isPending}
+          onCancel={() => setShowForm(false)}
+        />
+      </Modal>
 
-      {editingCategory && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Edit Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {updateCategory.isError && (
-              <div className="mb-4 rounded-md bg-danger-500/10 p-3 text-sm text-danger-500">
-                {getApiErrorMessage(updateCategory.error, 'Failed to update category')}
-              </div>
-            )}
-            <CategoryForm
-              category={editingCategory}
-              onSubmit={handleUpdate}
-              isLoading={updateCategory.isPending}
-              onCancel={() => setEditingCategory(null)}
-            />
-          </CardContent>
-        </Card>
-      )}
+      <Modal
+        open={!!editingCategory}
+        onClose={() => setEditingCategory(null)}
+        title="Edit Category"
+      >
+        {updateCategory.isError && (
+          <div className="mb-4 rounded-md bg-danger-500/10 p-3 text-sm text-danger-500">
+            {getApiErrorMessage(updateCategory.error, 'Failed to update category')}
+          </div>
+        )}
+        {editingCategory && (
+          <CategoryForm
+            category={editingCategory}
+            onSubmit={handleUpdate}
+            isLoading={updateCategory.isPending}
+            onCancel={() => setEditingCategory(null)}
+          />
+        )}
+      </Modal>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {categories?.map((category) => {
