@@ -22,6 +22,7 @@ from fastapi import APIRouter, Request
 
 from app.core.dependencies import DBSession, CurrentUser
 from app.core.rate_limit import rate_limit
+from app.core.request_context import system_context
 from app.schemas.scheduler import SchedulerRunResponse
 from app.services.scheduler import run_scheduled_tasks
 
@@ -34,5 +35,9 @@ router = APIRouter()
 @rate_limit("2/minute")
 async def run_scheduler_now(request: Request, current_user: CurrentUser, db: DBSession):
     as_of = date.today()
-    counts = await run_scheduled_tasks(db, as_of=as_of)
+    # Row-level-security policies (migration 015) would otherwise clip this intentionally
+    # system-wide job down to just current_user's own rows - see request_context.py's
+    # system_context docstring.
+    with system_context():
+        counts = await run_scheduled_tasks(db, as_of=as_of)
     return SchedulerRunResponse(as_of=as_of, **counts)

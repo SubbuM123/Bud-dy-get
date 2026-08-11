@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.config import get_settings
+from app.core.request_context import current_user_id
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import TokenData
@@ -91,6 +92,10 @@ async def get_current_user(
         raise credentials_exception
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+
+    # Drives the Postgres row-level-security policies set up in migration 015 - see
+    # app/database.py's `begin` event listener for how this reaches the DB connection.
+    current_user_id.set(user.id)
     return user
 
 

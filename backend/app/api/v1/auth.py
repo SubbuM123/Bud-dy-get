@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.config import get_settings
 from app.core.dependencies import DBSession
 from app.core.rate_limit import rate_limit
+from app.core.request_context import current_user_id
 from app.core.auth import (
     get_password_hash,
     create_access_token,
@@ -47,6 +48,12 @@ async def register(request: Request, user_data: UserCreate, db: DBSession):
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    # Registration is unauthenticated, so nothing has set the row-level-security identity
+    # yet - but seed_default_categories below inserts rows owned by this brand-new user, and
+    # migration 015's FORCE ROW LEVEL SECURITY would reject that insert without it. Safe to
+    # set here: the rest of this request really is now acting on this user's behalf.
+    current_user_id.set(user.id)
 
     # Give every new user the same starter category set the Expense Tracker module
     # (Phase 3) expects to already exist - see models/expense_categories.py's docstring
