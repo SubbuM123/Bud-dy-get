@@ -42,10 +42,10 @@ class Receipt(Base):
         UUID(as_uuid=False), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
-    # Upload info - file_key is the S3/MinIO object key (see services/storage.py), not a
-    # URL: presigned URLs expire, so the API generates one on read
-    # (services/storage.generate_presigned_url) rather than persisting a URL that would go
-    # stale. The raw bytes themselves are never stored in Postgres.
+    # Upload info - file_key was the S3/MinIO object key from when receipt files were
+    # persisted to storage; OCR now runs synchronously on the raw upload and no file is
+    # kept (see api/v1/receipts.py), so this is always null on new rows. Kept for schema
+    # stability rather than dropped.
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     file_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     file_type: Mapped[str] = mapped_column(String(50), nullable=False)

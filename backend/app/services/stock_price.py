@@ -1,5 +1,5 @@
 """Stock price data via yfinance (no API key required) - the only external client this
-module owns, following services/storage.py's "one module, one external client" pattern.
+module owns.
 
 Two failure modes are deliberately swallowed rather than raised: an invalid ticker or a
 transient network/yfinance-library issue both just mean "no price data available right
